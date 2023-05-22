@@ -92,18 +92,31 @@ def version_keyword(
 
 
 def find_files(path: _t.PathT = "") -> list[str]:
-    for ep in itertools.chain(
-        iter_entry_points("setuptools_scm.files_command"),
-        iter_entry_points("setuptools_scm.files_command_fallback"),
-    ):
-        command = ep.load()
-        if isinstance(command, str):
-            # this technique is deprecated
-            res = do(ep.load(), path or ".").splitlines()
-        else:
-            res = command(path)
-        if res:
-            return res
+    config = None
+    dist_name = None
+    if dist_name is None:
+        dist_name = _read_dist_name_from_setup_cfg()
+    if dist_name == "setuptools_scm":
+        return []
+    try:
+        config = Configuration.from_file(dist_name=dist_name)
+    except LookupError as e:
+        trace(e)
+    except FileNotFoundError as e:
+        trace(e)
+    if config is not None and config.enable_find_files:
+        for ep in itertools.chain(
+            iter_entry_points("setuptools_scm.files_command"),
+            iter_entry_points("setuptools_scm.files_command_fallback"),
+        ):
+            command = ep.load()
+            if isinstance(command, str):
+                # this technique is deprecated
+                res = do(ep.load(), path or ".").splitlines()
+            else:
+                res = command(path)
+            if res:
+                return res
     return []
 
 

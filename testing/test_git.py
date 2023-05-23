@@ -32,6 +32,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def _write_pyproject_config(directory: Path, enable_find_files: bool) -> None:
+    with open(directory / "pyproject.toml", "wt") as fh:
+        fh.write(f"[project]\nname = \"test\"\n[tool.setuptools_scm]\nenable_find_files = {str(enable_find_files).lower()}\n")
+
+
 @pytest.fixture(name="wd")
 def wd(wd: WorkDir, monkeypatch: pytest.MonkeyPatch, debug_mode: DebugMode) -> WorkDir:
     debug_mode.disable()
@@ -98,6 +103,7 @@ def test_git_gone(wd: WorkDir, monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.issue(403)
 def test_file_finder_no_history(wd: WorkDir, caplog: pytest.LogCaptureFixture) -> None:
     file_list = git_find_files(str(wd.cwd))
+    _write_pyproject_config(wd.cwd, True)
     assert file_list == []
 
     assert "listing git files failed - pretending there aren't any" in caplog.text
@@ -356,6 +362,7 @@ def test_git_archive_export_ignore(
     wd("git add test1.txt test2.txt")
     wd.commit()
     monkeypatch.chdir(wd.cwd)
+    _write_pyproject_config(wd.cwd, True)
     assert integration.find_files(".") == [opj(".", "test1.txt")]
 
 
@@ -366,6 +373,7 @@ def test_git_archive_subdirectory(wd: WorkDir, monkeypatch: pytest.MonkeyPatch) 
     wd("git add foobar")
     wd.commit()
     monkeypatch.chdir(wd.cwd)
+    _write_pyproject_config(wd.cwd, True)
     assert integration.find_files(".") == [opj(".", "foobar", "test1.txt")]
 
 
@@ -378,6 +386,7 @@ def test_git_archive_run_from_subdirectory(
     wd("git add foobar")
     wd.commit()
     monkeypatch.chdir(wd.cwd / "foobar")
+    _write_pyproject_config(wd.cwd / "foobar", True)
     assert integration.find_files(".") == [opj(".", "test1.txt")]
 
 
